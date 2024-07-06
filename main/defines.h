@@ -6,6 +6,7 @@
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
+#include "freertos/queue.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"
@@ -34,11 +35,14 @@ uint8_t* tx_buffer_ptr;
 
 TaskHandle_t transmit_handle;
 TaskHandle_t listener_handle;
+QueueHandle_t global_queue_handle = 0;
 
-
-struct Message {
+typedef struct Message {
     uint8_t msg_id;
-    uint8_t data[128];
-};
+    uint8_t led_tp;
+    uint8_t* data;
+} command_message_t;
+
+
 
 #endif
