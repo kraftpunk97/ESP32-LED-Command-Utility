@@ -18,18 +18,14 @@ void listener_task(void* args) {
 }
 
 void transmit_task(void* args) {
-    tx_buffer_ptr = (uint8_t*) malloc(UART_BUFFER_SIZE);
     command_message_t message;
     while(true) {
         ESP_LOGI(TAG, "transmit task now listening");
         // Copy the data from the queue/buffer to the tx_buffer and send that
         if (xQueueReceive(global_queue_handle, &message, portMAX_DELAY)) {
+            ESP_LOGI(TAG, "Recieved a message");
             if (message.msg_id == 0) {
-                strcpy((char*)message.data, (char*)tx_buffer_ptr);
-                ESP_LOGI(TAG, "Sending: %s", tx_buffer_ptr);
-                uart_write_bytes(UART_PORT_NUM, (const char*)tx_buffer_ptr, strlen((char*)tx_buffer_ptr));
-                
-                bzero(tx_buffer_ptr, UART_BUFFER_SIZE);
+                uart_write_bytes(UART_PORT_NUM, (const char*)message.data, strlen((char*)message.data));
                 vPortFree(message.data);
             }
         }

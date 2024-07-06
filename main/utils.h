@@ -12,7 +12,7 @@ void process_command(char* read_buffer) {
         // Transmit the echo message
         uint8_t* args = (uint8_t*)pvPortMalloc(sizeof(char)*(strlen(params_string)+1));
         strcpy((char*)args, params_string);
-        message.data = 0;
+        message.msg_id = 0;
         message.led_tp = 0;
         message.data = args;
         ESP_LOGI(TAG, "echo message ready");
@@ -21,7 +21,7 @@ void process_command(char* read_buffer) {
         // Transmit that incorrect command was used.
         uint8_t* args = (uint8_t*)pvPortMalloc(sizeof(char)*(strlen(params_string)+1));
         strcpy((char*)args, "Invalid command recieved");
-        message.data = 0;
+        message.msg_id = 0;
         message.led_tp = 0;
         message.data = args;
     }
