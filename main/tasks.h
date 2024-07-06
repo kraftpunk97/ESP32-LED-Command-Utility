@@ -21,6 +21,7 @@ void transmit_task(void* args) {
     tx_buffer_ptr = (uint8_t*) malloc(UART_BUFFER_SIZE);
     command_message_t message;
     while(true) {
+        ESP_LOGI(TAG, "transmit task now listening");
         // Copy the data from the queue/buffer to the tx_buffer and send that
         if (xQueueReceive(global_queue_handle, &message, portMAX_DELAY)) {
             if (message.msg_id == 0) {
