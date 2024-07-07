@@ -24,4 +24,4 @@ The project can be run with actual ESP32, by using [Wokwi Simulator](https://wok
 
 Simply build the project using ESP-IDF, and then open the `wokwi/diagram.json` file in VS Code. Then click on the `Run Simulation` button to the run the simulation. When running the project in Wokwi, the serial monitor is available at `localhost:4000`.
 
-To access ESP32's logs, change the line 18 in the `diagram.json` file from `[ "esp:4", "$serialMonitor:RX", "", [] ],` to `[ "esp:TX", "$serialMonitor:RX", "", [] ],`. The serial monitor will then output the log messages, while the Rx will still work the same.
+To access ESP32's logs, change the [line 18](https://github.com/kraftpunk97/cmd_blinker/blob/fd18b43032d4e51b98fbf5dcc8bc0ca5756a9532/wokwi/diagram.json#L18) in the `diagram.json` file from `[ "esp:4", "$serialMonitor:RX", "", [] ],` to `[ "esp:TX", "$serialMonitor:RX", "", [] ],`. The serial monitor will then output the log messages, while the Rx will still work the same.
