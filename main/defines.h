@@ -46,7 +46,6 @@ EventGroupHandle_t task_eventgroup_handle;
 QueueHandle_t global_queue_handle = 0;
 
 typedef struct Message {
-    uint8_t msg_id;
     uint8_t led_tp;
     uint8_t* data;
 } command_message_t;

@@ -8,7 +8,7 @@ void blink_task(void* args) {
         ESP_LOGI(TAG, "blinker task now listening");
         if (xQueuePeek(global_queue_handle, &message, portMAX_DELAY)) {
             ESP_LOGI(TAG, "Blinker task picked up the task peeked at the task from the queue");
-            if (message.msg_id == 1) { 
+            if ((xEventGroupGetBits(task_eventgroup_handle)&LED_TASK_QUEUE_READY) == 0) { 
                 ESP_LOGI(TAG, "This task was meant for blinker task");
                 xEventGroupSetBits(task_eventgroup_handle, LED_TASK_QUEUE_READY);
 
@@ -44,7 +44,7 @@ void transmit_task(void* args) {
 
         if (xQueuePeek(global_queue_handle, &message, portMAX_DELAY)) {
             ESP_LOGI(TAG, "Transmit task picked up the task peeked at the task from the queue");
-            if (message.msg_id == 0) {
+            if ((xEventGroupGetBits(task_eventgroup_handle)&TRANSMIT_TASK_QUEUE_READY) == 0) {
                 ESP_LOGI(TAG, "This task was meant for transmit task");
                 uart_write_bytes(UART_PORT_NUM, (const char*)message.data, strlen((char*)message.data));
                 xEventGroupSetBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);

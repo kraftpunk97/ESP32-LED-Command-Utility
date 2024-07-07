@@ -4,14 +4,10 @@
 #include <ctype.h>
 #include "defines.h"
 
-void invalid_command_message(command_message_t* message) {
-    ESP_LOGI(TAG, "Invalid command recieved");
+void info_message(command_message_t* message, char* message_str) {
     // Transmit that incorrect command was used.
-    char* message_str = "Invalid command recieved";
     uint8_t* args = (uint8_t*)pvPortMalloc(sizeof(char)*(strlen(message_str)+1)); // Null character included
     strcpy((char*)args, message_str);
-    message->msg_id = 0;
-    message->led_tp = 0;
     message->data = args;
 }
 
@@ -22,6 +18,7 @@ void process_command(char* read_buffer) {
     xEventGroupSetBits(task_eventgroup_handle, ALL_TASKS_QUEUE_READY);
     if (strstr(read_buffer, "led") != NULL) {
         xEventGroupClearBits(task_eventgroup_handle, LED_TASK_QUEUE_READY);
+        xEventGroupClearBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);
         char* start_ptr = params_string;
         int val = 0;
         while (!isdigit((int)*start_ptr)) {
@@ -34,21 +31,20 @@ void process_command(char* read_buffer) {
             end_ptr++;
         }
         ESP_LOGI(TAG, "LED args: %d", val);
-        message.msg_id = 1;
         message.led_tp = val;
-        message.data = NULL;
+        info_message(&message, "LED Function activated");
     } else if (strstr(read_buffer, "echo") != NULL) {
         // Transmit the echo message
         xEventGroupClearBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);
         uint8_t* args = (uint8_t*)pvPortMalloc(sizeof(char)*(strlen(params_string)+1)); // Null character included
         strcpy((char*)args, params_string);
-        message.msg_id = 0;
         message.led_tp = 0;
         message.data = args;
         ESP_LOGI(TAG, "echo message ready");
     } else {
         xEventGroupClearBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);
-        invalid_command_message(&message);
+        message.led_tp = 0;
+        info_message(&message, "Invalid command received");
     }
 
     if (xQueueSend(global_queue_handle, &message, 100) == pdTRUE) {
