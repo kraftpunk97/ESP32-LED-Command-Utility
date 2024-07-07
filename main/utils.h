@@ -5,7 +5,6 @@
 #include "defines.h"
 
 void info_message(command_message_t* message, char* message_str) {
-    // Transmit that incorrect command was used.
     uint8_t* args = (uint8_t*)pvPortMalloc(sizeof(char)*(strlen(message_str)+1)); // Null character included
     strcpy((char*)args, message_str);
     message->data = args;
@@ -17,8 +16,10 @@ void process_command(char* read_buffer) {
     command_message_t message;
     xEventGroupSetBits(task_eventgroup_handle, ALL_TASKS_QUEUE_READY);
     if (strstr(read_buffer, "led") != NULL) {
+        // Handling the arguments in case of an `led` command
         xEventGroupClearBits(task_eventgroup_handle, LED_TASK_QUEUE_READY);
         xEventGroupClearBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);
+        
         char* start_ptr = params_string;
         int val = 0;
         while (!isdigit((int)*start_ptr)) {

@@ -41,14 +41,15 @@ uint8_t* rx_buffer_ptr;
 TaskHandle_t transmit_handle;
 TaskHandle_t listener_handle;
 TaskHandle_t led_handle;
-TaskHandle_t blink_handle = NULL;
-EventGroupHandle_t task_eventgroup_handle;
+TaskHandle_t blink_handle = NULL; // Especially need to declare this handle NULL, because it may create issues with Task Deletion.
 
-QueueHandle_t global_queue_handle = 0;
+QueueHandle_t global_queue_handle = 0; // The queue used for sending messages between tasks.
+
+EventGroupHandle_t task_eventgroup_handle; // An event group created to signal when it is safe to remove message from the queue and de-allocate its memory.
 
 typedef struct Message {
-    int led_tp;
-    uint8_t* data;
+    int led_tp;    // Time period of the led-blinking
+    uint8_t* data; // Data to be transmitted to the user.
 } command_message_t;
 
 
