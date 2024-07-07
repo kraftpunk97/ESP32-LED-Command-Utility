@@ -8,8 +8,17 @@ void blink_task(void* args) {
         ESP_LOGI(TAG, "blinker task now listening");
         if (xQueuePeek(global_queue_handle, &message, portMAX_DELAY)) {
             ESP_LOGI(TAG, "Blinker task picked up the task peeked at the task from the queue");
-            if ((xEventGroupGetBits(task_eventgroup_handle)&LED_TASK_QUEUE_READY) == 0) { 
+            if ((xEventGroupGetBits(task_eventgroup_handle)&LED_TASK_QUEUE_READY) == 0) {
                 ESP_LOGI(TAG, "This task was meant for blinker task");
+
+                if (message.led_tp == 0)
+                    gpio_set_level(LED_GPIO, 0);
+                else if (message.led_tp == 1)
+                    gpio_set_level(LED_GPIO, 1);
+                else {
+                    // DO Nothing
+                }
+
                 xEventGroupSetBits(task_eventgroup_handle, LED_TASK_QUEUE_READY);
 
                 // Deletion part
