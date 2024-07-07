@@ -9,6 +9,7 @@ The project can be easily compiled with ESP-IDF. Visit this [link](https://docs.
 
 The diagram below describes the connections to be made. 
 ![image](misc/Screenshot%202024-07-07%20141143.png)
+
 The LED should be connected to GPIO pin two of your board. Furthermore, in this project we use pins **4** and **5** as the **Tx** and **Rx** of the ESP32, for serial communication. An FTDI USB to Serial adapter can be used to connected your computer to the serial ports of the ESP32.
 
 
