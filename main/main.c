@@ -17,8 +17,8 @@ void app_main(void) {
     if (transmit_create != pdPASS) {
         ESP_LOGI(TAG, "transmit task creation failed");
     }
-    BaseType_t blink_create = xTaskCreate(blink_task, "blink", 2048, NULL, 1, &blink_handle);
-    if (blink_create != pdPASS) {
+    BaseType_t led_create = xTaskCreate(led_task, "blink", 2048, NULL, 1, &led_handle);
+    if (led_create != pdPASS) {
         ESP_LOGI(TAG, "blink task creation failed");
     }
 }

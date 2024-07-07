@@ -40,13 +40,14 @@ uint8_t* rx_buffer_ptr;
 
 TaskHandle_t transmit_handle;
 TaskHandle_t listener_handle;
-TaskHandle_t blink_handle;
+TaskHandle_t led_handle;
+TaskHandle_t blink_handle = NULL;
 EventGroupHandle_t task_eventgroup_handle;
 
 QueueHandle_t global_queue_handle = 0;
 
 typedef struct Message {
-    uint8_t led_tp;
+    int led_tp;
     uint8_t* data;
 } command_message_t;
 

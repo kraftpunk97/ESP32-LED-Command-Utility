@@ -32,7 +32,17 @@ void process_command(char* read_buffer) {
         }
         ESP_LOGI(TAG, "LED args: %d", val);
         message.led_tp = val;
-        info_message(&message, "LED Function activated");
+        if (val == 0) {
+            info_message(&message, "LED turned off");
+        }
+        else if (val == 1) {
+            info_message(&message, "LED turned on");
+        }
+        else {
+            char blink_message[50];
+            sprintf(blink_message, "LED blinking with  half time period of %d ms", val);
+            info_message(&message, blink_message);
+        }
     } else if (strstr(read_buffer, "echo") != NULL) {
         // Transmit the echo message
         xEventGroupClearBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);
