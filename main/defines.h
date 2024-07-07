@@ -7,6 +7,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
+#include "freertos/event_groups.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"
@@ -28,13 +29,20 @@
 /*** LED defines ***/
 #define LED_GPIO GPIO_NUM_2
 
+/*** FreeRTOS defines ***/
+#define TRANSMIT_TASK_QUEUE_READY (1<<0)
+#define LED_TASK_QUEUE_READY (1<<1)
+#define ALL_TASKS_QUEUE_READY (TRANSMIT_TASK_QUEUE_READY | LED_TASK_QUEUE_READY)
+
 /*** Other declarations and constants***/
 static const char* TAG = "APP";
 uint8_t* rx_buffer_ptr;
-uint8_t* tx_buffer_ptr;
 
 TaskHandle_t transmit_handle;
 TaskHandle_t listener_handle;
+TaskHandle_t blink_handle;
+EventGroupHandle_t task_eventgroup_handle;
+
 QueueHandle_t global_queue_handle = 0;
 
 typedef struct Message {
