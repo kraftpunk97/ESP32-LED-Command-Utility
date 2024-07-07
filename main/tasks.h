@@ -5,16 +5,19 @@
 void blink_task(void* args) {
     command_message_t message;
     while (true) {
+        ESP_LOGI(TAG, "blinker task now listening");
         if (xQueuePeek(global_queue_handle, &message, portMAX_DELAY)) {
-            if ((xEventGroupGetBits(task_eventgroup_handle)&LED_TASK_QUEUE_READY) == 0) { 
-                ESP_LOGI(TAG, "Blinker task recieved something");
+            ESP_LOGI(TAG, "Blinker task picked up the task peeked at the task from the queue");
+            if (message.msg_id == 1) { 
+                ESP_LOGI(TAG, "This task was meant for blinker task");
                 xEventGroupSetBits(task_eventgroup_handle, LED_TASK_QUEUE_READY);
-            }
 
-            // Deletion part
-            if ((xEventGroupGetBits(task_eventgroup_handle)&ALL_TASKS_QUEUE_READY) == ALL_TASKS_QUEUE_READY) {
-                xQueueReceive(global_queue_handle, &message, portMAX_DELAY);
-                vPortFree(message.data);
+                // Deletion part
+                if ((xEventGroupGetBits(task_eventgroup_handle)&ALL_TASKS_QUEUE_READY) == ALL_TASKS_QUEUE_READY) {
+                    xQueueReceive(global_queue_handle, &message, portMAX_DELAY);
+                    vPortFree(message.data);
+                    ESP_LOGI(TAG, "Blinker task freed the memory");
+                }
             }
         }
     }
@@ -40,15 +43,18 @@ void transmit_task(void* args) {
         // Copy the data from the queue/buffer to the tx_buffer and send that
 
         if (xQueuePeek(global_queue_handle, &message, portMAX_DELAY)) {
-            if ((xEventGroupGetBits(task_eventgroup_handle)&TRANSMIT_TASK_QUEUE_READY) == 0) { 
+            ESP_LOGI(TAG, "Transmit task picked up the task peeked at the task from the queue");
+            if (message.msg_id == 0) {
+                ESP_LOGI(TAG, "This task was meant for transmit task");
                 uart_write_bytes(UART_PORT_NUM, (const char*)message.data, strlen((char*)message.data));
                 xEventGroupSetBits(task_eventgroup_handle, TRANSMIT_TASK_QUEUE_READY);
-            }
 
-            // Deletion part 
-            if ((xEventGroupGetBits(task_eventgroup_handle)&ALL_TASKS_QUEUE_READY) == ALL_TASKS_QUEUE_READY) {
-                xQueueReceive(global_queue_handle, &message, portMAX_DELAY);
-                vPortFree(message.data);
+                // Deletion part 
+                if ((xEventGroupGetBits(task_eventgroup_handle)&ALL_TASKS_QUEUE_READY) == ALL_TASKS_QUEUE_READY) {
+                    xQueueReceive(global_queue_handle, &message, portMAX_DELAY);
+                     vPortFree(message.data);
+                    ESP_LOGI(TAG, "Transmit task freed the memory");
+                }
             }
         }
     }

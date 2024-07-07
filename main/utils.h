@@ -51,7 +51,9 @@ void process_command(char* read_buffer) {
         invalid_command_message(&message);
     }
 
-    if (!xQueueSend(global_queue_handle, &message, 100)) {
+    if (xQueueSend(global_queue_handle, &message, 100) == pdTRUE) {
+        ESP_LOGI(TAG, "Task added to the queue successfully");
+    } else {
         ESP_LOGE(TAG, "Failed to send message");
     }
 }
