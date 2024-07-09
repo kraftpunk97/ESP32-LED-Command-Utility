@@ -169,7 +169,10 @@ void process_command(char* read_buffer, led_message_t* led_message, transmit_mes
 
 void timer_callback(TimerHandle_t timer) {
     /* // Why doesn't this work?
+    int state_ = gpio_get_level(LED_GPIO);
+    ESP_LOGI(TAG, "State: %d", state_);  // `APP: State: 1`
     gpio_set_level(LED_GPIO, !gpio_get_level(LED_GPIO));
+    ESP_LOGI(TAG, "State: %d", state_); // Still `APP: State: 1`
     */
     // But this works...   
     led_state = !led_state;
