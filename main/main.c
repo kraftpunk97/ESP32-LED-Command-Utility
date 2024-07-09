@@ -51,9 +51,6 @@ StaticTask_t led_task_buffer;
 
 QueueHandle_t transmit_queue_handle = 0;
 QueueHandle_t led_queue_handle = 0;
-
-TimerHandle_t led_timer_handle;
-//StaticTimer_t led_timer_buffer;
 /*** END ***/
 
 /*** Different message types  ***/
@@ -110,19 +107,20 @@ void led_setup(void) {
 
 /*** Utility functions ***/
 void message_dispatcher(led_message_t* led_message, transmit_message_t* transmit_message) {
-    if (led_message->led_tp > 0) {
+    if (led_message->led_tp >= 0) {
         // Send to led task
-        do {
+        while (xQueueSend(led_queue_handle, led_message, 50) == errQUEUE_FULL) {
             ESP_LOGE(TAG, "Failed to send message. Queue full. Trying again...");
-        } while (xQueueSend(led_queue_handle, led_message, 50) == errQUEUE_FULL);
+        }
+        ESP_LOGI(TAG, "Message sent to the led queue successfully.");
     }
     if (transmit_message->data != NULL) {
         // Send to transmit task
-        do {
+        while (xQueueSend(transmit_queue_handle, transmit_message, 50) == errQUEUE_FULL) {
             ESP_LOGE(TAG, "Failed to send message. Queue full. Trying again...");
-        } while (xQueueSend(transmit_queue_handle, transmit_message, 50) == errQUEUE_FULL);
-    }
-    ESP_LOGI(TAG, "Message sent to the queue successfully."); 
+        }
+        ESP_LOGI(TAG, "Message sent to the transmit queue successfully.");
+    } 
 }
 
 void construct_transmit_message(transmit_message_t* message, char* message_str) {
@@ -167,6 +165,7 @@ void process_command(char* read_buffer, led_message_t* led_message, transmit_mes
         led_message->led_tp = -1;
         construct_transmit_message(transmit_message, "Invalid command received");
     }
+    ESP_LOGI(TAG, "process_command complete");
 }
 
 void timer_callback(TimerHandle_t timer) {
@@ -178,7 +177,7 @@ void timer_callback(TimerHandle_t timer) {
 void listener_task(void* args) {
     rx_buffer_ptr = (uint8_t*) malloc(UART_BUFFER_SIZE);
     transmit_message_t transmit_message = {NULL,};
-    led_message_t led_message;
+    led_message_t led_message = {-1};
     int len;
     while (true) {
         len = uart_read_bytes(UART_PORT_NUM, rx_buffer_ptr, (UART_BUFFER_SIZE-1), 10);
@@ -205,7 +204,9 @@ void transmit_task(void* args) {
 
 void led_task(void* args) {
     led_message_t message;
-    led_timer_handle = xTimerCreate("led timer", pdMS_TO_TICKS(1), pdTRUE, (void*)0, timer_callback);
+    TimerHandle_t led_timer_handle;
+    StaticTimer_t led_timer_buffer;
+    led_timer_handle = xTimerCreateStatic("led timer", portMAX_DELAY, pdTRUE, (void*)0, timer_callback, &led_timer_buffer);
     while (true) {
         ESP_LOGI(TAG, "led task is now listening");
         if (xQueueReceive(led_queue_handle, &message, portMAX_DELAY) == pdPASS) {
@@ -223,8 +224,8 @@ void led_task(void* args) {
                 if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
                     xTimerStop(led_timer_handle, 100);
                 }
-                xTimerChangePeriod(led_timer_handle, pdMS_TO_TICKS(message.led_tp), pdMS_TO_TICKS(1));
-                xTimerStart(led_timer_handle, portMAX_DELAY);
+                xTimerChangePeriod(led_timer_handle, pdMS_TO_TICKS(message.led_tp), 100);
+                xTimerStart(led_timer_handle, 100);
             }
         }
     }
@@ -233,11 +234,12 @@ void led_task(void* args) {
 
 
 void app_main(void) {
+    /*** Setup ***/
     uart_setup();
     led_setup();
-
     transmit_queue_handle = xQueueCreate(7, sizeof(transmit_message_t));
     led_queue_handle = xQueueCreate(7, sizeof(led_message_t));
+    /*** END  ***/
 
     listener_handle = xTaskCreateStatic(listener_task, "listener", 2048, NULL, 2, listener_stack, &listener_task_buffer);
     configASSERT(listener_handle != NULL);
@@ -245,6 +247,7 @@ void app_main(void) {
     transmit_handle = xTaskCreateStatic(transmit_task, "transmit", 2048, NULL, 1, transmit_stack, &transmit_task_buffer);
     configASSERT(transmit_handle != NULL);
 
-    led_handle = xTaskCreateStatic(led_task, "led", , NULL, 1, led_stack, &led_task_buffer);
+    led_handle = xTaskCreateStatic(led_task, "led", 2048, NULL, 1, led_stack, &led_task_buffer);
     configASSERT(led_handle != NULL);
 }
+
