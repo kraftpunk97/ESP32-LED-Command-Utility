@@ -5,8 +5,7 @@
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
 #include "freertos/queue.h"
-#include "freertos/event_groups.h"
-#include "freertos/semphr.h"
+#include "freertos/timers.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"
@@ -52,6 +51,9 @@ StaticTask_t led_task_buffer;
 
 QueueHandle_t transmit_queue_handle = 0;
 QueueHandle_t led_queue_handle = 0;
+
+TimerHandle_t led_timer_handle;
+//StaticTimer_t led_timer_buffer;
 /*** END ***/
 
 /*** Different message types  ***/
@@ -166,6 +168,10 @@ void process_command(char* read_buffer, led_message_t* led_message, transmit_mes
         construct_transmit_message(transmit_message, "Invalid command received");
     }
 }
+
+void timer_callback(TimerHandle_t timer) {
+    gpio_set_level(LED_GPIO, !gpio_get_level(LED_GPIO));
+}
 /*** ***/
 
 /*** Task Definitions ***/
@@ -198,8 +204,29 @@ void transmit_task(void* args) {
 }
 
 void led_task(void* args) {
+    led_message_t message;
+    led_timer_handle = xTimerCreate("led timer", pdMS_TO_TICKS(1), pdTRUE, (void*)0, timer_callback);
     while (true) {
-        vTaskDelay(1000 / portTICK_PERIOD_MS);
+        ESP_LOGI(TAG, "led task is now listening");
+        if (xQueueReceive(led_queue_handle, &message, portMAX_DELAY) == pdPASS) {
+            if (message.led_tp == 0) {
+                if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
+                    xTimerStop(led_timer_handle, 100);
+                }
+                gpio_set_level(LED_GPIO, 0);
+            } else if (message.led_tp == 1) {
+                if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
+                    xTimerStop(led_timer_handle, 100);
+                }
+                gpio_set_level(LED_GPIO, 1);
+            } else {
+                if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
+                    xTimerStop(led_timer_handle, 100);
+                }
+                xTimerChangePeriod(led_timer_handle, pdMS_TO_TICKS(message.led_tp), pdMS_TO_TICKS(1));
+                xTimerStart(led_timer_handle, portMAX_DELAY);
+            }
+        }
     }
 }
 /** END ***/
@@ -218,6 +245,6 @@ void app_main(void) {
     transmit_handle = xTaskCreateStatic(transmit_task, "transmit", 2048, NULL, 1, transmit_stack, &transmit_task_buffer);
     configASSERT(transmit_handle != NULL);
 
-    led_handle = xTaskCreateStatic(led_task, "led", 2048, NULL, 1, led_stack, &led_task_buffer);
+    led_handle = xTaskCreateStatic(led_task, "led", , NULL, 1, led_stack, &led_task_buffer);
     configASSERT(led_handle != NULL);
 }
