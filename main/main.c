@@ -6,7 +6,6 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/timers.h"
-#include "freertos/semphr.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"
@@ -53,10 +52,7 @@ StaticTask_t led_task_buffer;
 QueueHandle_t transmit_queue_handle = 0;
 QueueHandle_t led_queue_handle = 0;
 
-SemaphoreHandle_t led_semaphore = NULL;
-StaticSemaphore_t led_mutex_buffer;
-
-int state = 0;
+int led_state = 0;
 /*** END ***/
 
 /*** Different message types  ***/
@@ -176,8 +172,8 @@ void timer_callback(TimerHandle_t timer) {
     gpio_set_level(LED_GPIO, !gpio_get_level(LED_GPIO));
     */
     // But this works...   
-    state = !state;
-    gpio_set_level(LED_GPIO, state);
+    led_state = !led_state;
+    gpio_set_level(LED_GPIO, led_state);
 }
 /*** ***/
 
@@ -211,12 +207,9 @@ void transmit_task(void* args) {
 
 void led_task(void* args) {
     led_message_t message;
-    TimerHandle_t led_timer_handle;
-    StaticTimer_t led_timer_buffer;
     
-    led_semaphore = xSemaphoreCreateMutexStatic(&led_mutex_buffer);
-    configASSERT(led_semaphore != NULL);
-
+    TimerHandle_t led_timer_handle;
+    StaticTimer_t led_timer_buffer;    
     led_timer_handle = xTimerCreateStatic("led timer", portMAX_DELAY, pdTRUE, (void*)0, timer_callback, &led_timer_buffer);
     
     while (true) {
