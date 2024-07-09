@@ -6,6 +6,7 @@
 #include "freertos/task.h"
 #include "freertos/queue.h"
 #include "freertos/timers.h"
+#include "freertos/semphr.h"
 
 #include "driver/uart.h"
 #include "driver/gpio.h"
@@ -51,6 +52,11 @@ StaticTask_t led_task_buffer;
 
 QueueHandle_t transmit_queue_handle = 0;
 QueueHandle_t led_queue_handle = 0;
+
+SemaphoreHandle_t led_semaphore = NULL;
+StaticSemaphore_t led_mutex_buffer;
+
+int state = 0;
 /*** END ***/
 
 /*** Different message types  ***/
@@ -112,14 +118,12 @@ void message_dispatcher(led_message_t* led_message, transmit_message_t* transmit
         while (xQueueSend(led_queue_handle, led_message, 50) == errQUEUE_FULL) {
             ESP_LOGE(TAG, "Failed to send message. Queue full. Trying again...");
         }
-        ESP_LOGI(TAG, "Message sent to the led queue successfully.");
     }
     if (transmit_message->data != NULL) {
         // Send to transmit task
         while (xQueueSend(transmit_queue_handle, transmit_message, 50) == errQUEUE_FULL) {
             ESP_LOGE(TAG, "Failed to send message. Queue full. Trying again...");
         }
-        ESP_LOGI(TAG, "Message sent to the transmit queue successfully.");
     } 
 }
 
@@ -165,11 +169,15 @@ void process_command(char* read_buffer, led_message_t* led_message, transmit_mes
         led_message->led_tp = -1;
         construct_transmit_message(transmit_message, "Invalid command received");
     }
-    ESP_LOGI(TAG, "process_command complete");
 }
 
 void timer_callback(TimerHandle_t timer) {
+    /* // Why doesn't this work?
     gpio_set_level(LED_GPIO, !gpio_get_level(LED_GPIO));
+    */
+    // But this works...   
+    state = !state;
+    gpio_set_level(LED_GPIO, state);
 }
 /*** ***/
 
@@ -193,7 +201,6 @@ void listener_task(void* args) {
 void transmit_task(void* args) {
     transmit_message_t message;
     while (true) {
-        ESP_LOGI(TAG, "transmit task now listening");
         if (xQueueReceive(transmit_queue_handle, &message, portMAX_DELAY) == pdPASS) {
             ESP_LOGI(TAG, "Transmit task recieved a message");
             uart_write_bytes(UART_PORT_NUM, (const char*)message.data, strlen((char*)message.data));
@@ -206,24 +213,21 @@ void led_task(void* args) {
     led_message_t message;
     TimerHandle_t led_timer_handle;
     StaticTimer_t led_timer_buffer;
+    
+    led_semaphore = xSemaphoreCreateMutexStatic(&led_mutex_buffer);
+    configASSERT(led_semaphore != NULL);
+
     led_timer_handle = xTimerCreateStatic("led timer", portMAX_DELAY, pdTRUE, (void*)0, timer_callback, &led_timer_buffer);
+    
     while (true) {
-        ESP_LOGI(TAG, "led task is now listening");
         if (xQueueReceive(led_queue_handle, &message, portMAX_DELAY) == pdPASS) {
-            if (message.led_tp == 0) {
-                if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
-                    xTimerStop(led_timer_handle, 100);
-                }
-                gpio_set_level(LED_GPIO, 0);
-            } else if (message.led_tp == 1) {
-                if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
-                    xTimerStop(led_timer_handle, 100);
-                }
-                gpio_set_level(LED_GPIO, 1);
+            ESP_LOGI(TAG, "LED task recieved a message");
+            if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
+                xTimerStop(led_timer_handle, 100);
+            }
+            if (message.led_tp == 0 || message.led_tp == 1) {
+                gpio_set_level(LED_GPIO, message.led_tp);
             } else {
-                if (xTimerIsTimerActive(led_timer_handle) != pdFALSE) {
-                    xTimerStop(led_timer_handle, 100);
-                }
                 xTimerChangePeriod(led_timer_handle, pdMS_TO_TICKS(message.led_tp), 100);
                 xTimerStart(led_timer_handle, 100);
             }
@@ -250,4 +254,3 @@ void app_main(void) {
     led_handle = xTaskCreateStatic(led_task, "led", 2048, NULL, 1, led_stack, &led_task_buffer);
     configASSERT(led_handle != NULL);
 }
-
