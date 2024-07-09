@@ -1,7 +1,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <ctype.h>
-#include <stdarg.h>
 
 #include "freertos/FreeRTOS.h"
 #include "freertos/task.h"
@@ -41,7 +40,7 @@ uint8_t* rx_buffer_ptr;
 TaskHandle_t transmit_handle = NULL;
 TaskHandle_t listener_handle = NULL;
 TaskHandle_t led_handle = NULL;
-TaskHandle_t blink_handle = NULL; // Especially need to declare this handle NULL, because it may create issues with Task Deletion.
+TaskHandle_t blink_handle = NULL;
 
 StackType_t listener_stack[2048];
 StackType_t transmit_stack[2048];
@@ -53,12 +52,7 @@ StaticTask_t led_task_buffer;
 
 QueueHandle_t transmit_queue_handle = 0;
 QueueHandle_t led_queue_handle = 0;
-
-EventGroupHandle_t led_queue_handle = NULL;
-EventGroupHandle_t transmit_queue_handle = NULL;
-
-SemaphoreHandle_t eventbits_sem_handle;
-
+/*** END ***/
 
 /*** Different message types  ***/
 typedef struct transmit_message_t {
@@ -161,7 +155,7 @@ void process_command(char* read_buffer, led_message_t* led_message, transmit_mes
         else {
             char blink_message[50];
             sprintf(blink_message, "LED blinking with  half time period of %d ms", val);
-            construct_transmist_message(transmit_message, blink_message);
+            construct_transmit_message(transmit_message, blink_message);
         }
     } else if (strstr(read_buffer, "echo") != NULL) {
         // Transmit the echo message
@@ -192,7 +186,21 @@ void listener_task(void* args) {
 }
 
 void transmit_task(void* args) {
+    transmit_message_t message;
+    while (true) {
+        ESP_LOGI(TAG, "transmit task now listening");
+        if (xQueueReceive(transmit_queue_handle, &message, portMAX_DELAY) == pdPASS) {
+            ESP_LOGI(TAG, "Transmit task recieved a message");
+            uart_write_bytes(UART_PORT_NUM, (const char*)message.data, strlen((char*)message.data));
+            vPortFree(message.data);
+        }
+    }
+}
 
+void led_task(void* args) {
+    while (true) {
+        vTaskDelay(1000 / portTICK_PERIOD_MS);
+    }
 }
 /** END ***/
 
@@ -209,4 +217,7 @@ void app_main(void) {
 
     transmit_handle = xTaskCreateStatic(transmit_task, "transmit", 2048, NULL, 1, transmit_stack, &transmit_task_buffer);
     configASSERT(transmit_handle != NULL);
+
+    led_handle = xTaskCreateStatic(led_task, "led", 2048, NULL, 1, led_stack, &led_task_buffer);
+    configASSERT(led_handle != NULL);
 }
