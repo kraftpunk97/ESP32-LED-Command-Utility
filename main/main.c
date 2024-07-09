@@ -27,11 +27,6 @@
 /*** LED defines ***/
 #define LED_GPIO GPIO_NUM_2
 
-/*** FreeRTOS defines ***/
-#define TRANSMIT_TASK_QUEUE_READY (1<<0)
-#define LED_TASK_QUEUE_READY (1<<1)
-#define ALL_TASKS_QUEUE_READY (TRANSMIT_TASK_QUEUE_READY | LED_TASK_QUEUE_READY)
-
 /*** Other declarations and constants***/
 static const char* TAG = "APP";
 uint8_t* rx_buffer_ptr;
