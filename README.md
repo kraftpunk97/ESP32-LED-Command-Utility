@@ -22,7 +22,7 @@ The command line termnial offers two commands-
 
 ## Wokwi Simulator
 
-The project can be run with actual ESP32, by using [Wokwi Simulator](https://wokwi.com/). I would recommend installing the [VS Code Extension](https://docs.wokwi.com/vscode/getting-started) to run the simulator.
+The project can be run without actual ESP32, by using [Wokwi Simulator](https://wokwi.com/). I would recommend installing the [VS Code Extension](https://docs.wokwi.com/vscode/getting-started) to run the simulator.
 
 Simply build the project using ESP-IDF, and then open the `wokwi/diagram.json` file in VS Code. Then click on the `Run Simulation` button to the run the simulation. When running the project in Wokwi, the serial monitor is available at `localhost:4000`.
 
