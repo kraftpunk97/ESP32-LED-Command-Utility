@@ -46,8 +46,6 @@ StaticTask_t led_task_buffer;
 
 QueueHandle_t transmit_queue_handle = 0;
 QueueHandle_t led_queue_handle = 0;
-
-int led_state = 0;
 /*** END ***/
 
 /*** Different message types  ***/
@@ -163,6 +161,7 @@ void process_command(char* read_buffer, led_message_t* led_message, transmit_mes
 }
 
 void timer_callback(TimerHandle_t timer) {
+    static int led_state = 0;
     led_state = !led_state;
     gpio_set_level(LED_GPIO, led_state);
 }
